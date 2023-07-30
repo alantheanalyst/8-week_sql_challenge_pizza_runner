@@ -1,0 +1,95 @@
+-- 1 Runner registration by week
+SELECT COUNT(runner_id) runner_registration, DATEPART(WEEK, registration_date) registration_week
+FROM runners
+GROUP BY DATEPART(WEEK, registration_date)
+ORDER BY registration_week
+
+
+-- 2. Average time it took each Runner to Arrive at the Pizza Runner HQ
+UPDATE runner_orders
+SET [distance km] = '20' WHERE [distance km] = '20km'
+
+UPDATE runner_orders
+SET [distance km] = '13.4' WHERE [distance km] = '13.4km'
+
+UPDATE runner_orders
+SET [distance km] = '25' WHERE [distance km] = '25km'
+
+UPDATE runner_orders
+SET [distance km] = '23.4' WHERE [distance km] = '23.4 km'
+
+UPDATE runner_orders
+SET [distance km] = '10' WHERE [distance km] = '10km'
+
+ALTER TABLE runner_orders
+ALTER COLUMN [distance km] FLOAT
+
+UPDATE runner_orders
+SET [duration minutes] = '32' WHERE [duration minutes] = '32 minutes'
+
+UPDATE runner_orders
+SET [duration minutes] = '27' WHERE [duration minutes] = '27 minutes'
+
+UPDATE runner_orders
+SET [duration minutes] = '20' WHERE [duration minutes] = '20 mins'
+
+UPDATE runner_orders
+SET [duration minutes] = '25' WHERE [duration minutes] = '25mins'
+
+UPDATE runner_orders
+SET [duration minutes] = '15' WHERE [duration minutes] = '15 minute'
+
+UPDATE runner_orders
+SET [duration minutes] = '10' WHERE [duration minutes] = '10minutes'
+
+ALTER TABLE runner_orders
+ALTER COLUMN duration int
+
+ALTER TABLE runner_orders
+ALTER COLUMN pickup_time datetime
+
+SELECT runner_id, ABS(AVG(DATEPART(MINUTE FROM order_time) - DATEPART(MINUTE from pickup_time))) avg_time
+FROM runner_orders r JOIN customer_orders c
+ON r.order_id = c.order_id
+GROUP BY runner_id
+
+-- 3. Relationship between the number of pizzas made and their preperation time
+;WITH prep_time AS (
+SELECT COUNT(*) pizza_count, 
+DATEDIFF(MINUTE, order_time, pickup_time) time
+FROM customer_orders c JOIN runner_orders r
+ON c.order_id = r.order_id
+WHERE pickup_time IS NOT NULL
+GROUP BY order_time, pickup_time 
+)
+SELECT DISTINCT pizza_count, time
+FROM prep_time
+ORDER BY time
+
+-- 4. Average distance each runner travelled to arrive at pizza runner HQ
+SELECT runner_id, customer_id, AVG([distance km]) avg_distance
+FROM runner_orders r JOIN customer_orders c
+ON r.order_id = c.order_id
+WHERE cancellation IS NULL
+GROUP BY runner_id, customer_id
+
+-- 5. Shortest deliveriy - longest delivery 
+SELECT MAX([duration minutes]) - MIN([duration minutes]) difference_between_longest_AND_shortest_orders
+FROM runner_orders r JOIN customer_orders c
+ON r.order_id = c.order_id
+
+-- 6. Runner's average speed per delivery
+SELECT runner_id, order_id AS delivery, AVG(ROUND([distance km]/[duration minutes], 2)) avg_speed
+FROM runner_orders
+WHERE cancellation IS NULL
+GROUP BY runner_id, order_id
+
+-- 7. Succesful delivery percentage per runner
+SELECT runner_id,
+ROUND(100* SUM(
+CASE
+	WHEN cancellation IS NOT NULL THEN 0
+	ELSE 1
+END)/COUNT(*), 0) successful_orders_perc
+FROM runner_orders
+GROUP BY runner_id
